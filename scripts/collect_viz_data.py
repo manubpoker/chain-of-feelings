@@ -252,6 +252,7 @@ def collect_real_data(
     model_name: str = "google/gemma-3n-E2B-it",
     checkpoint_path: str | None = None,
     max_prompts: int = 15,
+    no_quant: bool = False,
 ) -> dict:
     """Collect real visualization data by running the model with affect channel.
 
@@ -270,7 +271,7 @@ def collect_real_data(
     model, injector, tokenizer = setup_affective_model(
         model_name=model_name,
         config=config,
-        load_in_4bit=True,
+        load_in_4bit=not no_quant,
     )
 
     # Load checkpoint if provided
@@ -383,6 +384,7 @@ def main():
     parser.add_argument("--model", default="google/gemma-3n-E2B-it", help="Model name")
     parser.add_argument("--checkpoint", default=None, help="Path to affect channel checkpoint")
     parser.add_argument("--max-prompts", type=int, default=15, help="Max prompts to process")
+    parser.add_argument("--no-quant", action="store_true", help="Load model in bfloat16 without quantization")
     args = parser.parse_args()
 
     output_path = Path(args.output)
@@ -401,6 +403,7 @@ def main():
             model_name=args.model,
             checkpoint_path=args.checkpoint,
             max_prompts=args.max_prompts,
+            no_quant=args.no_quant,
         )
 
     print(f"\n  Total prompts: {len(data['prompts'])}")
