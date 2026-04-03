@@ -1,0 +1,11 @@
+results/
+*.pt
+*.bin
+*.safetensors
+*.memmap
+__pycache__/
+*.pyc
+.venv/
+.uv/
+data/failure_cases/baselines/
+notebooks/.ipynb_checkpoints/

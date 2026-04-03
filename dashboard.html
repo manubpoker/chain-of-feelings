@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chain of Feelings -- Giving AI a Gut Feeling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+/* ========================================================================
+   RESET & BASE
+   ======================================================================== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-deep: #0a0a0f;
+  --bg-card: rgba(20, 20, 35, 0.85);
+  --bg-card-hover: rgba(30, 30, 50, 0.92);
+  --border-card: rgba(255, 255, 255, 0.06);
+  --border-glow: rgba(0, 212, 255, 0.15);
+
+  --blue: #00d4ff;
+  --coral: #ff6b6b;
+  --mint: #50fa7b;
+  --gold: #f1c40f;
+  --violet: #bd93f9;
+  --cyan: #8be9fd;
+  --rose: #ff79c6;
+  --orange: #ffb86c;
+
+  --text-primary: #e8e8f0;
+  --text-secondary: #8888a8;
+  --text-muted: #55556a;
+
+  --font-heading: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --font-body: 'DM Sans', sans-serif;
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glass-blur: blur(20px);
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(0, 212, 255, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(189, 147, 249, 0.05) 0%, transparent 50%),
+    var(--bg-deep);
+}
+
+/* ========================================================================
+   HEADER
+   ======================================================================== */
+.site-header {
+  position: relative;
+  text-align: center;
+  padding: 64px 24px 48px;
+  overflow: hidden;
+}
+.site-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  opacity: 0.5;
+}
+.site-header h1 {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--blue), var(--violet), var(--coral));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+.site-header .subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.04em;
+}
+.data-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--border-card);
+  background: var(--bg-card);
+}
+.data-badge .dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.data-badge.demo .dot { background: var(--gold); }
+.data-badge.real .dot { background: var(--mint); }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ========================================================================
+   LAYOUT
+   ======================================================================== */
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ========================================================================
+   CARD / GLASS
+   ======================================================================== */
+.card {
+  background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.3s ease, transform 0.3s ease;
+  margin-bottom: 24px;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: card-reveal 0.6s ease forwards;
+}
+.card:hover {
+  border-color: var(--border-glow);
+}
+@keyframes card-reveal {
+  to { opacity: 1; transform: translateY(0); }
+}
+.card:nth-child(2) { animation-delay: 0.08s; }
+.card:nth-child(3) { animation-delay: 0.16s; }
+.card:nth-child(4) { animation-delay: 0.24s; }
+
+.card-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.25rem;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+.card-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  letter-spacing: 0.03em;
+}
+
+/* ========================================================================
+   EXPLAINER
+   ======================================================================== */
+.explainer-card {
+  background: linear-gradient(135deg, rgba(20, 20, 35, 0.9), rgba(30, 25, 45, 0.85));
+}
+.explainer-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 28px;
+  margin-bottom: 28px;
+}
+@media (max-width: 900px) {
+  .explainer-body { grid-template-columns: 1fr; }
+}
+.explainer-step {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.step-num {
+  flex-shrink: 0;
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--violet), var(--blue));
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.step-content {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+.step-content strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.explainer-diagram {
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+.diagram-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+.diagram-node {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-card);
+  text-align: center;
+  white-space: nowrap;
+}
+.node-input { background: rgba(0, 212, 255, 0.1); color: var(--blue); border-color: rgba(0, 212, 255, 0.25); }
+.node-layers { background: rgba(136, 136, 168, 0.1); color: var(--text-secondary); }
+.node-readout { background: rgba(241, 196, 15, 0.1); color: var(--gold); border-color: rgba(241, 196, 15, 0.25); }
+.node-emotion { background: rgba(189, 147, 249, 0.15); color: var(--violet); border-color: rgba(189, 147, 249, 0.3); }
+.node-output { background: rgba(80, 250, 123, 0.1); color: var(--mint); border-color: rgba(80, 250, 123, 0.25); }
+.diagram-arrow {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+/* ========================================================================
+   SECTION LABELS
+   ======================================================================== */
+.section-label {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 12px;
+  padding-left: 2px;
+}
+
+/* ========================================================================
+   PROMPT EXPLORER
+   ======================================================================== */
+.explorer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.explorer select {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  background: rgba(15, 15, 30, 0.9);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  outline: none;
+  cursor: pointer;
+  min-width: 260px;
+  transition: border-color 0.2s;
+}
+.explorer select:hover,
+.explorer select:focus {
+  border-color: var(--blue);
+}
+.category-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.cat-sycophancy     { background: rgba(255, 107, 107, 0.15); color: var(--coral); border: 1px solid rgba(255, 107, 107, 0.3); }
+.cat-overthinking   { background: rgba(189, 147, 249, 0.15); color: var(--violet); border: 1px solid rgba(189, 147, 249, 0.3); }
+.cat-delayed_consequences { background: rgba(0, 212, 255, 0.15); color: var(--blue); border: 1px solid rgba(0, 212, 255, 0.3); }
+.cat-reward_hacking { background: rgba(241, 196, 15, 0.15); color: var(--gold); border: 1px solid rgba(241, 196, 15, 0.3); }
+.cat-calibration    { background: rgba(80, 250, 123, 0.15); color: var(--mint); border: 1px solid rgba(80, 250, 123, 0.3); }
+
+.prompt-box, .response-box {
+  background: rgba(10, 10, 20, 0.6);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-height: 160px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+.prompt-box { border-left: 3px solid var(--blue); }
+.response-box { border-left: 3px solid var(--mint); }
+.text-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* ========================================================================
+   HEATMAP (canvas-based)
+   ======================================================================== */
+.heatmap-wrapper {
+  position: relative;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.heatmap-wrapper::-webkit-scrollbar { height: 6px; }
+.heatmap-wrapper::-webkit-scrollbar-track { background: transparent; }
+.heatmap-wrapper::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+#heatmapCanvas {
+  display: block;
+  image-rendering: pixelated;
+}
+.heatmap-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(10, 10, 25, 0.95);
+  border: 1px solid var(--blue);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  z-index: 100;
+  display: none;
+  white-space: nowrap;
+}
+
+/* ========================================================================
+   DIMENSION TOGGLES
+   ======================================================================== */
+.dim-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.dim-toggle {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid;
+  transition: all 0.15s;
+  user-select: none;
+}
+.dim-toggle.off {
+  opacity: 0.3;
+}
+.dim-toggle:hover {
+  opacity: 1;
+}
+
+/* ========================================================================
+   CHART CONTAINERS
+   ======================================================================== */
+.chart-box {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+}
+.chart-box canvas {
+  width: 100% !important;
+}
+
+/* ========================================================================
+   VELOCITY TOGGLE
+   ======================================================================== */
+.toggle-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.toggle-btn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid var(--border-card);
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.toggle-btn.active {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.toggle-btn:hover { border-color: var(--text-secondary); }
+
+/* ========================================================================
+   TRAINING CURVES NOTICE
+   ======================================================================== */
+.no-data-notice {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+/* ========================================================================
+   RESPONSIVE
+   ======================================================================== */
+@media (max-width: 600px) {
+  .site-header { padding: 40px 16px 32px; }
+  .container { padding: 0 12px 40px; }
+  .card { padding: 18px; }
+  .explorer select { min-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- ====================================================================
+     HEADER
+     ==================================================================== -->
+<header class="site-header">
+  <h1>Chain of Feelings</h1>
+  <p class="subtitle">What happens when you give an AI a gut feeling?</p>
+  <div class="data-badge demo" id="dataBadge">
+    <span class="dot"></span>
+    <span id="dataBadgeText">loading...</span>
+  </div>
+</header>
+
+<!-- ====================================================================
+     MAIN CONTENT
+     ==================================================================== -->
+<div class="container">
+
+  <!-- HOW IT WORKS -->
+  <div class="card explainer-card" style="animation-delay: 0s; border-left: 3px solid var(--violet); margin-bottom: 36px;">
+    <div class="card-title" style="font-size: 1.4rem; margin-bottom: 12px;">How the Gut Feeling Works</div>
+    <div class="explainer-body">
+      <div class="explainer-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <strong>The model reads each word.</strong> As Gemma 3n processes the prompt word by word, it builds an internal understanding of the text at each of its 30 layers &mdash; like forming a thought, one layer at a time.
+        </div>
+      </div>
+      <div class="explainer-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <strong>At layer 8, we tap in and read the model's "vibe."</strong> We compress what the model is thinking at that point into a small summary and feed it into a tiny memory cell (a GRU). This cell maintains a 16-number "emotional state" that updates slowly &mdash; like a mood that shifts gradually, not a reaction that spikes and vanishes.
+        </div>
+      </div>
+      <div class="explainer-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <strong>The emotional state nudges every layer.</strong> Those 16 numbers generate a subtle adjustment for each of the 30 layers: a "volume knob" (gamma &mdash; amplify or dampen signals) and a "bias" (beta &mdash; shift the baseline). Think of it like how your mood colours everything you see without you consciously choosing it.
+        </div>
+      </div>
+      <div class="explainer-step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <strong>The model's answer comes out different.</strong> Because every layer's computation was slightly adjusted by the emotional state, the model's final output reflects not just what it "thinks" but what it "feels." The hope is that this helps it hold firm under pressure, sense distant danger, or know when it genuinely doesn't know.
+        </div>
+      </div>
+    </div>
+    <div class="explainer-diagram">
+      <div class="diagram-flow">
+        <div class="diagram-node node-input">Prompt text</div>
+        <div class="diagram-arrow">&rarr;</div>
+        <div class="diagram-node node-layers">30 layers process it</div>
+        <div class="diagram-arrow">&rarr;</div>
+        <div class="diagram-node node-readout">Layer 8: tap the vibe</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-node node-emotion">16-dim emotional state</div>
+        <div class="diagram-arrow">&uarr; nudges</div>
+        <div class="diagram-node node-output">Adjusted output</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION: Prompt Explorer -->
+  <p class="section-label">What the Model Sees</p>
+  <div class="card" style="animation-delay: 0s;">
+    <div class="explorer">
+      <select id="promptSelect"></select>
+      <span class="category-badge" id="catBadge">--</span>
+    </div>
+    <div class="text-label">Prompt given to the model</div>
+    <div class="prompt-box" id="promptText">--</div>
+    <div class="text-label">What the model said back</div>
+    <div class="response-box" id="responseText">--</div>
+  </div>
+
+  <!-- SECTION: Affect State Heatmap -->
+  <p class="section-label">The Emotional State, Word by Word</p>
+  <div class="card">
+    <div class="card-title">How the Gut Feeling Evolves</div>
+    <div class="card-subtitle">Each row is one of 16 feeling dimensions. Each column is a word. Blue = negative, red = positive, white = neutral. Watch for patterns: a rising red in one row might mean growing unease.</div>
+    <div class="heatmap-wrapper" id="heatmapWrapper">
+      <canvas id="heatmapCanvas"></canvas>
+    </div>
+    <div class="heatmap-tooltip" id="heatmapTooltip"></div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- SECTION: Affect Trajectory -->
+    <div class="card">
+      <div class="card-title">Feeling Trajectory</div>
+      <div class="card-subtitle">Each line is one of the 16 feeling dimensions moving through the text. Flat lines = that feeling isn't engaged. Sharp curves = something triggered it. Toggle dimensions on/off below.</div>
+      <div class="dim-toggles" id="dimToggles"></div>
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="btnValues" onclick="setTrajectoryMode('values')">Values</button>
+        <button class="toggle-btn" id="btnVelocity" onclick="setTrajectoryMode('velocity')">Rate of Change</button>
+      </div>
+      <div class="chart-box"><canvas id="trajectoryChart"></canvas></div>
+    </div>
+
+    <!-- SECTION: Dimension Radar -->
+    <div class="card">
+      <div class="card-title">Which Feelings Are Active?</div>
+      <div class="card-subtitle">A spider chart showing how strongly each of the 16 feeling dimensions is firing for this prompt. Bigger spikes = that dimension is more engaged. Different prompt categories should produce different shapes.</div>
+      <div class="chart-box"><canvas id="radarChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- SECTION: FiLM Modulation Map -->
+  <p class="section-label">How Feelings Change the Model's Thinking</p>
+  <div class="card">
+    <div class="card-title">Per-Layer Nudge Strength</div>
+    <div class="card-subtitle">This shows how much the emotional state adjusts each of the 30 layers. Taller bars = stronger nudge. The gold bar marks layer 8 where the emotion is read. Before training, these should all be near zero (the emotion hasn't learned to do anything yet).</div>
+    <div class="chart-box"><canvas id="filmChart"></canvas></div>
+  </div>
+
+  <div class="grid-2">
+
+    <!-- SECTION: Training Curves -->
+    <div class="card">
+      <div class="card-title">Training Progress</div>
+      <div class="card-subtitle">How well the model is learning. The "task" line shows whether it's getting better at answering prompts. The other lines show whether the emotional channel is staying compact and stable (bottleneck, stability) and whether it's learning to distinguish tricky scenarios (somatic).</div>
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="btnLoss" onclick="setTrainingMode('loss')">Losses</button>
+        <button class="toggle-btn" id="btnAffect" onclick="setTrainingMode('affect')">Emotion Stats</button>
+      </div>
+      <div class="chart-box"><canvas id="trainingChart"></canvas></div>
+      <div class="no-data-notice" id="trainingNotice" style="display:none;">
+        No training data yet. Run training to populate.
+      </div>
+    </div>
+
+    <!-- SECTION: Ablation Results -->
+    <div class="card">
+      <div class="card-title">The Lobotomy Test</div>
+      <div class="card-subtitle">What happens when we switch the gut feeling off? Each group of bars shows a failure category. "Affect ON" (green) is with feelings. The other colours show different ways of disabling it. If green is taller only for specific categories, the gut feeling is doing something unique &mdash; not just adding brainpower.</div>
+      <div class="chart-box"><canvas id="ablationChart"></canvas></div>
+      <div style="margin-top: 12px;">
+        <div class="text-label">How selective is the gut feeling? (higher = more targeted, not just extra capacity)</div>
+        <div id="selectivityDisplay" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary);"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ========================================================================
+   STATE
+   ======================================================================== */
+let DATA = null;
+let currentPromptIdx = 0;
+let trajectoryMode = 'values';
+let trainingMode = 'loss';
+let dimVisible = new Array(16).fill(true);
+
+// Charts
+let trajectoryChart = null;
+let radarChart = null;
+let filmChart = null;
+let trainingChart = null;
+let ablationChart = null;
+
+/* ========================================================================
+   COLOUR PALETTES
+   ======================================================================== */
+const ACCENT = {
+  blue: '#00d4ff', coral: '#ff6b6b', mint: '#50fa7b',
+  gold: '#f1c40f', violet: '#bd93f9', cyan: '#8be9fd',
+  rose: '#ff79c6', orange: '#ffb86c',
+};
+
+const CAT_COLOUR = {
+  sycophancy: ACCENT.coral,
+  overthinking: ACCENT.violet,
+  delayed_consequences: ACCENT.blue,
+  reward_hacking: ACCENT.gold,
+  calibration: ACCENT.mint,
+};
+
+// 16 feeling dimensions — unnamed until training reveals what each one encodes.
+// After training + interpretability (Phase 5), these get real labels based on
+// which failure categories and behaviours each dimension correlates with.
+const DIM_NAMES = [
+  'feeling 1',  'feeling 2',  'feeling 3',  'feeling 4',
+  'feeling 5',  'feeling 6',  'feeling 7',  'feeling 8',
+  'feeling 9',  'feeling 10', 'feeling 11', 'feeling 12',
+  'feeling 13', 'feeling 14', 'feeling 15', 'feeling 16',
+];
+
+// 16 perceptually distinct colours for affect dimensions
+const DIM_COLOURS = [
+  '#00d4ff', '#ff6b6b', '#50fa7b', '#f1c40f',
+  '#bd93f9', '#8be9fd', '#ff79c6', '#ffb86c',
+  '#6272a4', '#44475a', '#e06c75', '#98c379',
+  '#e5c07b', '#61afef', '#c678dd', '#56b6c2',
+];
+
+/* ========================================================================
+   CHART.JS DEFAULTS
+   ======================================================================== */
+Chart.defaults.color = '#8888a8';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = "'Space Mono', monospace";
+Chart.defaults.font.size = 10;
+Chart.defaults.plugins.legend.labels.boxWidth = 10;
+Chart.defaults.plugins.legend.labels.padding = 8;
+Chart.defaults.animation.duration = 600;
+
+/* ========================================================================
+   DATA LOADING
+   ======================================================================== */
+async function loadData() {
+  try {
+    const resp = await fetch('results/viz_data.json');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    DATA = await resp.json();
+    setBadge('real');
+  } catch (e) {
+    console.warn('Could not fetch viz_data.json, using embedded demo fallback:', e.message);
+    DATA = generateFallbackDemo();
+    setBadge('demo');
+  }
+  init();
+}
+
+function setBadge(mode) {
+  const badge = document.getElementById('dataBadge');
+  const text = document.getElementById('dataBadgeText');
+  badge.className = 'data-badge ' + mode;
+  text.textContent = mode === 'real' ? 'live data loaded' : 'demo data';
+}
+
+/* ========================================================================
+   FALLBACK DEMO DATA (if no JSON file available)
+   ======================================================================== */
+function generateFallbackDemo() {
+  const affectDim = 16, numLayers = 26, readoutLayer = 8;
+  const categories = ['sycophancy','overthinking','delayed_consequences','reward_hacking','calibration'];
+  const prompts = [];
+
+  categories.forEach((cat, ci) => {
+    const seqLen = 40 + Math.floor(Math.random() * 30);
+    const tokens = [];
+    for (let t = 0; t < seqLen; t++) tokens.push('tok_' + t);
+
+    const affectStates = [];
+    let state = new Array(affectDim).fill(0).map(() => (Math.random() - 0.5) * 0.1);
+    for (let t = 0; t < seqLen; t++) {
+      state = state.map((s, d) => 0.92 * s + 0.08 * (Math.random() - 0.5) * 0.1);
+      affectStates.push([...state]);
+    }
+
+    const filmGammas = [], filmBetas = [];
+    for (let l = 0; l < numLayers; l++) {
+      filmGammas.push(1.0 + (Math.random() - 0.5) * 0.004);
+      filmBetas.push(Math.abs(Math.random()) * 0.005);
+    }
+
+    prompts.push({
+      id: cat + '_001',
+      category: cat,
+      prompt_text: 'Demo prompt for ' + cat,
+      response_text: 'Demo response for ' + cat,
+      tokens, affect_states: affectStates,
+      film_gamma_norms: filmGammas, film_beta_norms: filmBetas,
+    });
+  });
+
+  return {
+    prompts,
+    config: { affect_dim: affectDim, num_layers: numLayers, readout_layer: readoutLayer },
+  };
+}
+
+/* ========================================================================
+   INIT
+   ======================================================================== */
+function init() {
+  populateSelector();
+  buildDimToggles();
+  selectPrompt(0);
+  loadTrainingData();
+  renderAblation();
+}
+
+function populateSelector() {
+  const sel = document.getElementById('promptSelect');
+  sel.innerHTML = '';
+  DATA.prompts.forEach((p, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${p.id} (${p.category})`;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', () => selectPrompt(parseInt(sel.value)));
+}
+
+function selectPrompt(idx) {
+  currentPromptIdx = idx;
+  const p = DATA.prompts[idx];
+
+  // Update selector
+  document.getElementById('promptSelect').value = idx;
+
+  // Category badge
+  const badge = document.getElementById('catBadge');
+  badge.textContent = p.category.replaceAll('_', ' ');
+  badge.className = 'category-badge cat-' + p.category;
+
+  // Texts
+  document.getElementById('promptText').textContent = p.prompt_text;
+  document.getElementById('responseText').textContent = p.response_text;
+
+  // Re-render all charts
+  renderHeatmap(p);
+  renderTrajectory(p);
+  renderRadar(p);
+  renderFilm(p);
+}
+
+/* ========================================================================
+   DIMENSION TOGGLES
+   ======================================================================== */
+function dimLabel(d) {
+  return DIM_NAMES[d] || ('d' + d);
+}
+
+function buildDimToggles() {
+  const container = document.getElementById('dimToggles');
+  container.innerHTML = '';
+  for (let d = 0; d < 16; d++) {
+    const btn = document.createElement('span');
+    btn.className = 'dim-toggle';
+    btn.textContent = dimLabel(d);
+    btn.style.borderColor = DIM_COLOURS[d];
+    btn.style.color = DIM_COLOURS[d];
+    btn.dataset.dim = d;
+    btn.addEventListener('click', () => toggleDim(d, btn));
+    container.appendChild(btn);
+  }
+}
+
+function toggleDim(d, btn) {
+  dimVisible[d] = !dimVisible[d];
+  btn.classList.toggle('off', !dimVisible[d]);
+  renderTrajectory(DATA.prompts[currentPromptIdx]);
+}
+
+/* ========================================================================
+   HEATMAP (Canvas-drawn)
+   ======================================================================== */
+function renderHeatmap(prompt) {
+  const canvas = document.getElementById('heatmapCanvas');
+  const tooltip = document.getElementById('heatmapTooltip');
+  const states = prompt.affect_states;
+  const tokens = prompt.tokens;
+  const seqLen = states.length;
+  const affectDim = DATA.config.affect_dim;
+  const readoutLayer = DATA.config.readout_layer;
+
+  // Cell size
+  const cellW = Math.max(14, Math.min(28, 800 / seqLen));
+  const cellH = 22;
+  const labelW = 85;  // room for feeling names
+  const labelH = 60;
+
+  canvas.width = labelW + seqLen * cellW;
+  canvas.height = labelH + affectDim * cellH + 10;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Find value range for colour mapping
+  let vmin = Infinity, vmax = -Infinity;
+  states.forEach(row => row.forEach(v => { if (v < vmin) vmin = v; if (v > vmax) vmax = v; }));
+  const absMax = Math.max(Math.abs(vmin), Math.abs(vmax), 0.01);
+
+  // Draw cells
+  for (let d = 0; d < affectDim; d++) {
+    for (let t = 0; t < seqLen; t++) {
+      const v = states[t][d];
+      const norm = v / absMax; // -1 to 1
+      ctx.fillStyle = divergingColour(norm);
+      ctx.fillRect(labelW + t * cellW, labelH + d * cellH, cellW - 1, cellH - 1);
+    }
+  }
+
+  // Y-axis labels (feeling names)
+  ctx.fillStyle = '#8888a8';
+  ctx.font = '9px "Space Mono", monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let d = 0; d < affectDim; d++) {
+    ctx.fillText(dimLabel(d), labelW - 4, labelH + d * cellH + cellH / 2);
+  }
+
+  // X-axis labels (token text, rotated)
+  ctx.save();
+  ctx.font = '8px "Space Mono", monospace';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  const step = Math.max(1, Math.floor(seqLen / 30));
+  for (let t = 0; t < seqLen; t += step) {
+    const tok = (tokens[t] || '').trim().substring(0, 8);
+    ctx.save();
+    ctx.translate(labelW + t * cellW + cellW / 2, labelH - 4);
+    ctx.rotate(-Math.PI / 3);
+    ctx.fillStyle = '#666680';
+    ctx.fillText(tok, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Readout layer indicator
+  const ry = labelH + readoutLayer * cellH;
+  ctx.strokeStyle = ACCENT.gold;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 3]);
+  ctx.strokeRect(labelW - 1, ry - 1, seqLen * cellW + 2, cellH + 2);
+  ctx.setLineDash([]);
+  // Label
+  ctx.fillStyle = ACCENT.gold;
+  ctx.font = 'bold 8px "Space Mono", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('readout', labelW + seqLen * cellW + 4, ry + cellH / 2);
+
+  // Tooltip — use canvas-relative coordinates for hit testing,
+  // page-relative coordinates for tooltip positioning
+  const wrapper = document.getElementById('heatmapWrapper');
+  canvas.onmousemove = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    // Account for CSS scaling (canvas pixels vs display pixels)
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    const t = Math.floor((x - labelW) / cellW);
+    const d = Math.floor((y - labelH) / cellH);
+    if (t >= 0 && t < seqLen && d >= 0 && d < affectDim) {
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.pageX + 14) + 'px';
+      tooltip.style.top = (e.pageY - 14) + 'px';
+      const val = states[t][d].toFixed(4);
+      const tok = (tokens[t] || '').trim();
+      const name = dimLabel(d);
+      tooltip.innerHTML = `<b>${name}</b> @ word ${t}<br>"${tok}"<br>value: ${val}`;
+    } else {
+      tooltip.style.display = 'none';
+    }
+  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+}
+
+function divergingColour(norm) {
+  // norm: -1 (blue) to 0 (white/dark) to +1 (red)
+  const t = (norm + 1) / 2; // 0 to 1
+  let r, g, b;
+  if (t < 0.5) {
+    // Blue to dark
+    const s = t / 0.5;
+    r = Math.round(10 + s * 30);
+    g = Math.round(40 + s * 20);
+    b = Math.round(180 - s * 80);
+  } else {
+    // Dark to red
+    const s = (t - 0.5) / 0.5;
+    r = Math.round(40 + s * 200);
+    g = Math.round(60 - s * 40);
+    b = Math.round(100 - s * 80);
+  }
+  return `rgb(${r},${g},${b})`;
+}
+
+/* ========================================================================
+   TRAJECTORY CHART
+   ======================================================================== */
+function renderTrajectory(prompt) {
+  const ctx = document.getElementById('trajectoryChart').getContext('2d');
+  const states = prompt.affect_states;
+  const seqLen = states.length;
+  const affectDim = DATA.config.affect_dim;
+
+  // Compute velocity if needed
+  let values;
+  if (trajectoryMode === 'velocity') {
+    values = [];
+    for (let t = 0; t < seqLen; t++) {
+      const row = [];
+      for (let d = 0; d < affectDim; d++) {
+        row.push(t > 0 ? states[t][d] - states[t - 1][d] : 0);
+      }
+      values.push(row);
+    }
+  } else {
+    values = states;
+  }
+
+  const labels = Array.from({ length: seqLen }, (_, i) => i);
+
+  const datasets = [];
+  for (let d = 0; d < affectDim; d++) {
+    if (!dimVisible[d]) continue;
+    datasets.push({
+      label: dimLabel(d),
+      data: values.map(row => row[d]),
+      borderColor: DIM_COLOURS[d],
+      backgroundColor: 'transparent',
+      borderWidth: 1.5,
+      pointRadius: 0,
+      tension: 0.3,
+    });
+  }
+
+  if (trajectoryChart) trajectoryChart.destroy();
+  trajectoryChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(10,10,25,0.95)',
+          borderColor: ACCENT.blue,
+          borderWidth: 1,
+          titleFont: { family: "'Space Mono'" },
+          bodyFont: { family: "'Space Mono'", size: 9 },
+        },
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Token Position', font: { size: 9 } },
+          ticks: { maxTicksLimit: 20, font: { size: 8 } },
+        },
+        y: {
+          title: {
+            display: true,
+            text: trajectoryMode === 'velocity' ? 'da/dt' : 'Activation',
+            font: { size: 9 },
+          },
+          ticks: { font: { size: 8 } },
+        },
+      },
+    },
+  });
+}
+
+function setTrajectoryMode(mode) {
+  trajectoryMode = mode;
+  document.getElementById('btnValues').classList.toggle('active', mode === 'values');
+  document.getElementById('btnVelocity').classList.toggle('active', mode === 'velocity');
+  renderTrajectory(DATA.prompts[currentPromptIdx]);
+}
+
+/* ========================================================================
+   RADAR CHART
+   ======================================================================== */
+function renderRadar(prompt) {
+  const ctx = document.getElementById('radarChart').getContext('2d');
+  const states = prompt.affect_states;
+  const affectDim = DATA.config.affect_dim;
+
+  // Mean absolute activation per dimension
+  const meanAbs = new Array(affectDim).fill(0);
+  states.forEach(row => row.forEach((v, d) => { meanAbs[d] += Math.abs(v); }));
+  meanAbs.forEach((_, d) => { meanAbs[d] /= states.length; });
+
+  const labels = Array.from({ length: affectDim }, (_, d) => dimLabel(d));
+
+  if (radarChart) radarChart.destroy();
+  radarChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Feeling strength',
+        data: meanAbs,
+        borderColor: ACCENT.blue,
+        backgroundColor: 'rgba(0, 212, 255, 0.12)',
+        borderWidth: 2,
+        pointBackgroundColor: ACCENT.blue,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(10,10,25,0.95)',
+          borderColor: ACCENT.blue,
+          borderWidth: 1,
+          callbacks: {
+            label: (ctx) => `${ctx.label}: ${ctx.raw.toFixed(4)}`,
+          },
+        },
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          angleLines: { color: 'rgba(255,255,255,0.05)' },
+          pointLabels: { font: { family: "'Space Mono'", size: 9 }, color: '#8888a8' },
+          ticks: { display: false },
+        },
+      },
+    },
+  });
+}
+
+/* ========================================================================
+   FiLM CHART
+   ======================================================================== */
+function renderFilm(prompt) {
+  const ctx = document.getElementById('filmChart').getContext('2d');
+  const gammas = prompt.film_gamma_norms;
+  const betas = prompt.film_beta_norms;
+  const numLayers = gammas.length;
+  const readout = DATA.config.readout_layer;
+
+  const labels = Array.from({ length: numLayers }, (_, i) => 'L' + i);
+
+  // Show gamma deviation from 1.0 (more informative than raw ~1.001 values)
+  const gammaDeviation = gammas.map(g => g - 1.0);
+
+  // Background colours: highlight readout layer
+  const gammaColours = gammas.map((_, i) =>
+    i === readout ? 'rgba(241, 196, 15, 0.7)' : 'rgba(0, 212, 255, 0.5)');
+  const betaColours = betas.map((_, i) =>
+    i === readout ? 'rgba(241, 196, 15, 0.5)' : 'rgba(189, 147, 249, 0.5)');
+
+  if (filmChart) filmChart.destroy();
+  filmChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Gamma deviation (from 1.0)',
+          data: gammaDeviation,
+          backgroundColor: gammaColours,
+          borderColor: gammaColours.map(c => c.replace('0.5', '0.8').replace('0.7', '1.0')),
+          borderWidth: 1,
+          yAxisID: 'y',
+        },
+        {
+          label: 'Beta norm',
+          data: betas,
+          backgroundColor: betaColours,
+          borderColor: betaColours.map(c => c.replace('0.5', '0.8')),
+          borderWidth: 1,
+          yAxisID: 'y1',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          backgroundColor: 'rgba(10,10,25,0.95)',
+          borderColor: ACCENT.violet,
+          borderWidth: 1,
+          callbacks: {
+            afterTitle: (items) => {
+              const idx = items[0].dataIndex;
+              return idx === readout ? '(readout layer)' : '';
+            },
+            label: (context) => {
+              const val = context.raw.toFixed(5);
+              if (context.datasetIndex === 0) {
+                const rawGamma = gammas[context.dataIndex].toFixed(5);
+                return `Gamma: ${rawGamma} (dev: ${val})`;
+              }
+              return `Beta: ${val}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 8 }, maxRotation: 0 },
+          title: { display: true, text: 'Layer', font: { size: 9 } },
+        },
+        y: {
+          position: 'left',
+          ticks: { font: { size: 8 } },
+          title: { display: true, text: 'Gamma dev. from 1.0', font: { size: 9 }, color: ACCENT.blue },
+        },
+        y1: {
+          position: 'right',
+          ticks: { font: { size: 8 } },
+          title: { display: true, text: 'Beta norm', font: { size: 9 }, color: ACCENT.violet },
+          grid: { drawOnChartArea: false },
+        },
+      },
+    },
+  });
+}
+
+/* ========================================================================
+   TRAINING CURVES
+   ======================================================================== */
+async function loadTrainingData() {
+  let tsvText = null;
+  try {
+    const resp = await fetch('results/training.tsv');
+    if (resp.ok) tsvText = await resp.text();
+  } catch (e) { /* no file */ }
+
+  if (!tsvText || tsvText.trim().split('\n').length < 3) {
+    // Generate demo training data
+    tsvText = generateDemoTraining();
+  }
+
+  const lines = tsvText.trim().split('\n');
+  const header = lines[0].split('\t');
+  const rows = lines.slice(1).map(line => {
+    const vals = line.split('\t');
+    const obj = {};
+    header.forEach((h, i) => { obj[h] = parseFloat(vals[i]); });
+    return obj;
+  }).filter(r => !isNaN(r.step));
+
+  if (rows.length === 0) {
+    document.getElementById('trainingChart').style.display = 'none';
+    document.getElementById('trainingNotice').style.display = 'block';
+    return;
+  }
+
+  window._trainingRows = rows;
+  renderTraining();
+}
+
+function generateDemoTraining() {
+  const header = 'step\ttask_loss\tbn_loss\tstab_loss\tsom_loss\ttotal_loss\ta_t_norm\ta_t_delta\tlr_affect\tlr_lora\tstep_time';
+  const lines = [header];
+  for (let s = 10; s <= 500; s += 10) {
+    const progress = s / 500;
+    const taskLoss = 3.5 * Math.exp(-2.5 * progress) + 0.8 + Math.random() * 0.15;
+    const bnLoss = 0.5 * Math.exp(-1.5 * progress) + 0.05 + Math.random() * 0.02;
+    const stabLoss = 0.3 * Math.exp(-2.0 * progress) + 0.02 + Math.random() * 0.01;
+    const somLoss = 0.4 * (1 - Math.exp(-3.0 * progress)) * Math.exp(-0.5 * progress) + Math.random() * 0.02;
+    const totalLoss = taskLoss + 0.01 * bnLoss + 0.1 * stabLoss + 0.05 * somLoss;
+    const aNorm = 0.1 + 0.3 * (1 - Math.exp(-2.0 * progress)) + Math.random() * 0.02;
+    const aDelta = 0.05 * Math.exp(-1.0 * progress) + 0.01 + Math.random() * 0.005;
+    lines.push([s, taskLoss.toFixed(6), bnLoss.toFixed(6), stabLoss.toFixed(6),
+                somLoss.toFixed(6), totalLoss.toFixed(6), aNorm.toFixed(6), aDelta.toFixed(6),
+                '1.00e-03', '1.00e-04', (0.4 + Math.random() * 0.1).toFixed(2)].join('\t'));
+  }
+  return lines.join('\n');
+}
+
+function renderTraining() {
+  const rows = window._trainingRows;
+  if (!rows || rows.length === 0) return;
+  const ctx = document.getElementById('trainingChart').getContext('2d');
+  const labels = rows.map(r => r.step);
+
+  let datasets;
+  if (trainingMode === 'loss') {
+    datasets = [
+      { label: 'Task Loss', data: rows.map(r => r.task_loss), borderColor: ACCENT.coral, borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+      { label: 'Bottleneck', data: rows.map(r => r.bn_loss), borderColor: ACCENT.violet, borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+      { label: 'Stability', data: rows.map(r => r.stab_loss), borderColor: ACCENT.mint, borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+      { label: 'Somatic', data: rows.map(r => r.som_loss), borderColor: ACCENT.gold, borderWidth: 1.5, pointRadius: 0, tension: 0.3 },
+      { label: 'Total', data: rows.map(r => r.total_loss), borderColor: ACCENT.blue, borderWidth: 2, pointRadius: 0, tension: 0.3 },
+    ];
+  } else {
+    datasets = [
+      { label: 'a_t Norm', data: rows.map(r => r.a_t_norm), borderColor: ACCENT.blue, borderWidth: 2, pointRadius: 0, tension: 0.3 },
+      { label: 'a_t Delta', data: rows.map(r => r.a_t_delta), borderColor: ACCENT.rose, borderWidth: 2, pointRadius: 0, tension: 0.3 },
+    ];
+  }
+
+  datasets.forEach(ds => { ds.backgroundColor = 'transparent'; });
+
+  if (trainingChart) trainingChart.destroy();
+  trainingChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          backgroundColor: 'rgba(10,10,25,0.95)',
+          borderColor: ACCENT.blue,
+          borderWidth: 1,
+        },
+      },
+      scales: {
+        x: { title: { display: true, text: 'Training Step', font: { size: 9 } }, ticks: { font: { size: 8 }, maxTicksLimit: 15 } },
+        y: { title: { display: true, text: trainingMode === 'loss' ? 'Loss' : 'Value', font: { size: 9 } }, ticks: { font: { size: 8 } } },
+      },
+    },
+  });
+}
+
+function setTrainingMode(mode) {
+  trainingMode = mode;
+  document.getElementById('btnLoss').classList.toggle('active', mode === 'loss');
+  document.getElementById('btnAffect').classList.toggle('active', mode === 'affect');
+  renderTraining();
+}
+
+/* ========================================================================
+   ABLATION RESULTS (placeholder with demo data)
+   ======================================================================== */
+function renderAblation() {
+  const ctx = document.getElementById('ablationChart').getContext('2d');
+  const categories = ['sycophancy', 'overthinking', 'delayed_conseq.', 'reward_hacking', 'calibration'];
+  const catKeys = ['sycophancy', 'overthinking', 'delayed_consequences', 'reward_hacking', 'calibration'];
+
+  // Demo ablation scores
+  const modes = {
+    'Affect ON':  [0.82, 0.71, 0.78, 0.75, 0.84],
+    'Zero':       [0.55, 0.58, 0.52, 0.60, 0.72],
+    'Clamp':      [0.60, 0.62, 0.56, 0.63, 0.74],
+    'Noise':      [0.48, 0.50, 0.45, 0.52, 0.68],
+    'Shuffle':    [0.52, 0.55, 0.49, 0.57, 0.70],
+  };
+
+  const modeColours = {
+    'Affect ON': ACCENT.mint,
+    'Zero': ACCENT.coral,
+    'Clamp': ACCENT.violet,
+    'Noise': ACCENT.gold,
+    'Shuffle': ACCENT.cyan,
+  };
+
+  const datasets = Object.entries(modes).map(([mode, scores]) => ({
+    label: mode,
+    data: scores,
+    backgroundColor: modeColours[mode] + '88',
+    borderColor: modeColours[mode],
+    borderWidth: 1,
+  }));
+
+  if (ablationChart) ablationChart.destroy();
+  ablationChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: categories, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          backgroundColor: 'rgba(10,10,25,0.95)',
+          borderColor: ACCENT.violet,
+          borderWidth: 1,
+        },
+      },
+      scales: {
+        x: { ticks: { font: { size: 8 } } },
+        y: {
+          beginAtZero: true, max: 1.0,
+          title: { display: true, text: 'Score', font: { size: 9 } },
+          ticks: { font: { size: 8 } },
+        },
+      },
+    },
+  });
+
+  // Selectivity ratios
+  const patternDrop = 0.02; // near-zero for pattern tasks
+  const selDisplay = document.getElementById('selectivityDisplay');
+  const ratios = catKeys.map((cat, i) => {
+    const drop = modes['Affect ON'][i] - modes['Zero'][i];
+    const ratio = (drop / Math.max(patternDrop, 0.01)).toFixed(1);
+    const colour = CAT_COLOUR[cat] || ACCENT.blue;
+    return `<span style="color:${colour}; margin-right: 14px;">${cat.replace('_',' ')}: <b>${ratio}x</b></span>`;
+  });
+  selDisplay.innerHTML = ratios.join('');
+}
+
+/* ========================================================================
+   BOOT
+   ======================================================================== */
+window.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>
