@@ -55,11 +55,14 @@ def main():
     parser.add_argument("--steps", type=int, default=5000)
     parser.add_argument("--debug", action="store_true", help="Small config for local debugging")
     parser.add_argument("--no-quant", action="store_true", help="Load in bfloat16 (needs 24GB+ VRAM)")
+    parser.add_argument("--no-lora", action="store_true", help="No LoRA — force all learning through the affect channel")
+    parser.add_argument("--affect-dim", type=int, default=None, help="Override affect_dim (default 16)")
+    parser.add_argument("--somatic-margin", type=float, default=None, help="Override somatic margin (default 0.5)")
     parser.add_argument("--model", default="google/gemma-3n-E2B-it")
     args = parser.parse_args()
 
     print("=" * 60)
-    print("Chain of Feelings — Training (v2)")
+    print("Chain of Feelings — Training (v3)")
     print("=" * 60)
 
     if not torch.cuda.is_available():
@@ -81,27 +84,41 @@ def main():
 
     # Load model
     affect_config = AffectConfig()
+    if args.affect_dim is not None:
+        affect_config.affect_dim = args.affect_dim
+        print(f"  Override affect_dim={args.affect_dim}")
+
     model, injector, tokenizer = setup_affective_model(
         model_name=args.model,
         config=affect_config,
         load_in_4bit=not args.no_quant,
     )
 
-    # Apply LoRA
-    from peft import get_peft_model, LoraConfig, TaskType
-    lora_config = LoraConfig(
-        task_type=TaskType.CAUSAL_LM,
-        r=8,
-        lora_alpha=16,
-        lora_dropout=0.05,
-        target_modules=["q_proj", "v_proj", "o_proj"],
-    )
-    model = get_peft_model(model, lora_config)
-    lora_params = [p for p in model.parameters() if p.requires_grad]
-    print(f"  LoRA params: {sum(p.numel() for p in lora_params):,}")
+    # Apply LoRA (unless --no-lora)
+    lora_params = []
+    if not args.no_lora:
+        from peft import get_peft_model, LoraConfig, TaskType
+        lora_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            r=8,
+            lora_alpha=16,
+            lora_dropout=0.05,
+            target_modules=["q_proj", "v_proj", "o_proj"],
+        )
+        model = get_peft_model(model, lora_config)
+        lora_params = [p for p in model.parameters() if p.requires_grad]
+        print(f"  LoRA params: {sum(p.numel() for p in lora_params):,}")
+    else:
+        # Freeze all model params — only affect channel is trainable
+        for param in model.parameters():
+            param.requires_grad = False
+        print(f"  No LoRA — only affect channel ({injector.param_count():,} params) is trainable")
 
     # Training config
-    loss_config = LossConfig()  # lambda_stability now 0.01 (was 0.1)
+    loss_config = LossConfig()
+    if args.somatic_margin is not None:
+        loss_config.somatic_margin = args.somatic_margin
+        print(f"  Override somatic_margin={args.somatic_margin}")
     train_config = TrainConfig(
         max_steps=args.steps,
         batch_size=1,
@@ -109,6 +126,7 @@ def main():
         log_interval=10,
         save_interval=500 if not args.debug else 100,
         loss=loss_config,
+        affect_lr=3e-3 if args.no_lora else 1e-3,  # higher LR when affect is the only learner
     )
 
     print(f"  Loss weights: bottleneck={loss_config.lambda_bottleneck}, "
