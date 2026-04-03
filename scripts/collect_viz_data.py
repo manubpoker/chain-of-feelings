@@ -253,6 +253,8 @@ def collect_real_data(
     checkpoint_path: str | None = None,
     max_prompts: int = 15,
     no_quant: bool = False,
+    use_mlp: bool = False,
+    affect_dim: int | None = None,
 ) -> dict:
     """Collect real visualization data by running the model with affect channel.
 
@@ -268,6 +270,10 @@ def collect_real_data(
 
     # Load model + affect channel
     config = AffectConfig()
+    if affect_dim is not None:
+        config.affect_dim = affect_dim
+    if use_mlp:
+        config.use_mlp = True
     model, injector, tokenizer = setup_affective_model(
         model_name=model_name,
         config=config,
@@ -385,6 +391,8 @@ def main():
     parser.add_argument("--checkpoint", default=None, help="Path to affect channel checkpoint")
     parser.add_argument("--max-prompts", type=int, default=15, help="Max prompts to process")
     parser.add_argument("--no-quant", action="store_true", help="Load model in bfloat16 without quantization")
+    parser.add_argument("--use-mlp", action="store_true", help="Use MLP affect channel (must match checkpoint)")
+    parser.add_argument("--affect-dim", type=int, default=None, help="Override affect_dim (must match checkpoint)")
     args = parser.parse_args()
 
     output_path = Path(args.output)
@@ -404,6 +412,8 @@ def main():
             checkpoint_path=args.checkpoint,
             max_prompts=args.max_prompts,
             no_quant=args.no_quant,
+            use_mlp=args.use_mlp,
+            affect_dim=args.affect_dim,
         )
 
     print(f"\n  Total prompts: {len(data['prompts'])}")
