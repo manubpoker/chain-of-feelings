@@ -215,6 +215,11 @@ def setup_affective_model(
             bnb_4bit_compute_dtype=torch.bfloat16,
             bnb_4bit_quant_type="nf4",
             bnb_4bit_use_double_quant=True,
+            llm_int8_skip_modules=[
+                "altup", "prediction_coefs", "altup_projections",
+                "altup_unembed_projections", "per_layer_projection",
+                "lm_head", "embed_tokens",
+            ],
         )
 
     model = AutoModelForCausalLM.from_pretrained(
