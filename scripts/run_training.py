@@ -56,6 +56,7 @@ def main():
     parser.add_argument("--debug", action="store_true", help="Small config for local debugging")
     parser.add_argument("--no-quant", action="store_true", help="Load in bfloat16 (needs 24GB+ VRAM)")
     parser.add_argument("--no-lora", action="store_true", help="No LoRA — force all learning through the affect channel")
+    parser.add_argument("--lora-rank", type=int, default=8, help="LoRA rank (lower = more pressure on affect channel)")
     parser.add_argument("--affect-dim", type=int, default=None, help="Override affect_dim (default 16)")
     parser.add_argument("--somatic-margin", type=float, default=None, help="Override somatic margin (default 0.5)")
     parser.add_argument("--model", default="google/gemma-3n-E2B-it")
@@ -100,8 +101,8 @@ def main():
         from peft import get_peft_model, LoraConfig, TaskType
         lora_config = LoraConfig(
             task_type=TaskType.CAUSAL_LM,
-            r=8,
-            lora_alpha=16,
+            r=args.lora_rank,
+            lora_alpha=args.lora_rank * 2,
             lora_dropout=0.05,
             target_modules=["q_proj", "v_proj", "o_proj"],
         )
