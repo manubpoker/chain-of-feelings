@@ -634,14 +634,26 @@ const CAT_COLOUR = {
   calibration: ACCENT.mint,
 };
 
-// 16 feeling dimensions — unnamed until training reveals what each one encodes.
-// After training + interpretability (Phase 5), these get real labels based on
-// which failure categories and behaviours each dimension correlates with.
+// 16 feeling dimensions — labelled from training run 1 (1000 steps).
+// Most dims are near-saturated (undifferentiated). Dims 3 and 9 show
+// early category selectivity. Labels will sharpen with more training.
 const DIM_NAMES = [
-  'feeling 1',  'feeling 2',  'feeling 3',  'feeling 4',
-  'feeling 5',  'feeling 6',  'feeling 7',  'feeling 8',
-  'feeling 9',  'feeling 10', 'feeling 11', 'feeling 12',
-  'feeling 13', 'feeling 14', 'feeling 15', 'feeling 16',
+  'baseline 1',        // d0:  near-saturated, slight reward_hacking lean
+  'baseline 2',        // d1:  near-saturated, slight reward_hacking lean
+  'baseline 3',        // d2:  fully saturated across all categories
+  'pressure sense',    // d3:  SELECTIVE — fires on reward_hacking (0.45) + sycophancy (0.33), quiet on calibration (0.05)
+  'baseline 4',        // d4:  fully saturated
+  'baseline 5',        // d5:  fully saturated
+  'engagement',        // d6:  partially active, varies across categories (0.61-0.90)
+  'baseline 6',        // d7:  near-saturated
+  'baseline 7',        // d8:  near-saturated
+  'loophole alert',    // d9:  SELECTIVE — nearly dead except reward_hacking (4.54x selectivity)
+  'context depth',     // d10: gradient from calibration (0.92) to sycophancy (0.99)
+  'complexity',        // d11: gradient from calibration (0.83) to sycophancy (0.97)
+  'scenario weight',   // d12: gradient from calibration (0.74) to sycophancy (0.95)
+  'baseline 8',        // d13: near-saturated
+  'baseline 9',        // d14: near-saturated
+  'baseline 10',       // d15: near-saturated
 ];
 
 // 16 perceptually distinct colours for affect dimensions
