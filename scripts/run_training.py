@@ -25,6 +25,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--steps", type=int, default=1000)
     parser.add_argument("--debug", action="store_true", help="Small config for local debugging")
+    parser.add_argument("--no-quant", action="store_true", help="Load model in bfloat16 without quantization (needs 24GB+ VRAM)")
     parser.add_argument("--model", default="google/gemma-3n-E2B-it")
     args = parser.parse_args()
 
@@ -52,7 +53,7 @@ def main():
     model, injector, tokenizer = setup_affective_model(
         model_name=args.model,
         config=affect_config,
-        load_in_4bit=True,
+        load_in_4bit=not args.no_quant,
     )
 
     # Apply LoRA
