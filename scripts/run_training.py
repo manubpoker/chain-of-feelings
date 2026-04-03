@@ -59,6 +59,7 @@ def main():
     parser.add_argument("--lora-rank", type=int, default=8, help="LoRA rank (lower = more pressure on affect channel)")
     parser.add_argument("--affect-dim", type=int, default=None, help="Override affect_dim (default 16)")
     parser.add_argument("--somatic-margin", type=float, default=None, help="Override somatic margin (default 0.5)")
+    parser.add_argument("--use-mlp", action="store_true", help="Use MLP instead of GRU for affect (better gradient flow)")
     parser.add_argument("--model", default="google/gemma-3n-E2B-it")
     args = parser.parse_args()
 
@@ -88,6 +89,9 @@ def main():
     if args.affect_dim is not None:
         affect_config.affect_dim = args.affect_dim
         print(f"  Override affect_dim={args.affect_dim}")
+    if args.use_mlp:
+        affect_config.use_mlp = True
+        print(f"  Using MLP affect channel (not GRU)")
 
     model, injector, tokenizer = setup_affective_model(
         model_name=args.model,

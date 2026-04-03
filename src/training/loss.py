@@ -18,8 +18,8 @@ from src.affect.injection import AffectInjector
 @dataclass
 class LossConfig:
     """Weights for the three loss components."""
-    lambda_bottleneck: float = 0.01
-    lambda_stability: float = 0.01   # relaxed from 0.1 — was freezing affect dynamics
+    lambda_bottleneck: float = 0.001  # reduced — was causing fixed-point collapse
+    lambda_stability: float = 0.001  # minimal — let the affect state move freely
     lambda_somatic: float = 0.05
     somatic_margin: float = 0.5    # contrastive margin
 
