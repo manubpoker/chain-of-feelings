@@ -135,9 +135,9 @@ class AffectInjector:
             # All operations must be out-of-place to preserve autograd graph
             if self._film_params is not None and layer_idx < len(self._film_params):
                 gamma, beta = self._film_params[layer_idx]
-                # gamma/beta are (batch, model_dim)
-                gamma = gamma.unsqueeze(1)  # (batch, 1, model_dim)
-                beta = beta.unsqueeze(1)
+                # Cast to match hidden states dtype (model runs in bfloat16)
+                gamma = gamma.to(dtype=hidden_states.dtype).unsqueeze(1)  # (batch, 1, model_dim)
+                beta = beta.to(dtype=hidden_states.dtype).unsqueeze(1)
 
                 if is_4d:
                     # Modulate all AltUp slots (out-of-place)
