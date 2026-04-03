@@ -63,6 +63,8 @@ def load_prompts(
     for fpath in files:
         if not fpath.exists():
             continue
+        if fpath.name == "pairs.jsonl":
+            continue  # scenario pairs, not prompts
         with open(fpath, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
