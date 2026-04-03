@@ -132,6 +132,7 @@ class AffectInjector:
                 self._film_params = self.film(mean_affect)
 
             # Apply FiLM modulation at all layers (after readout has been computed)
+            # All operations must be out-of-place to preserve autograd graph
             if self._film_params is not None and layer_idx < len(self._film_params):
                 gamma, beta = self._film_params[layer_idx]
                 # gamma/beta are (batch, model_dim)
@@ -139,10 +140,11 @@ class AffectInjector:
                 beta = beta.unsqueeze(1)
 
                 if is_4d:
-                    # Modulate all AltUp slots
-                    hidden_states = hidden_states.clone()
-                    for i in range(hidden_states.shape[0]):
-                        hidden_states[i] = gamma * hidden_states[i] + beta
+                    # Modulate all AltUp slots (out-of-place)
+                    hidden_states = torch.stack([
+                        gamma * hidden_states[i] + beta
+                        for i in range(hidden_states.shape[0])
+                    ])
                 else:
                     hidden_states = gamma * main_hidden + beta
 
